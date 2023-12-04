@@ -7,6 +7,8 @@ import (
 )
 
 func TestValidStringMixed(t *testing.T) {
+	assert.Equal(t, validName(""), false, "empty")
+	assert.Equal(t, validName("a"), true, "empty")
 	assert.Equal(t, validName("abcd124"), true, "mixed case")
 	assert.Equal(t, validName("abcd"), true, "mixed case")
 	assert.Equal(t, validName("1234"), true, "digits")

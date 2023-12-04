@@ -1,6 +1,6 @@
 /*
 
-https://protohackers.com/problem/0
+https://protohackers.com/problem/3
 
 */
 
@@ -28,6 +28,7 @@ type Users []User
 var users Users
 
 // add the user to the list of  users
+// TODO handle concurrent updates with channels or locks
 func (users *Users) addUser(user User) {
 	*users = append(*users, user)
 }
@@ -61,6 +62,9 @@ func handleError(err error, msg string) {
 
 // valid usernames are comprised of letters and/or digits
 func validName(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
 			return false
@@ -84,11 +88,11 @@ func handleConnection(conn *net.TCPConn) {
 	scanner := bufio.NewScanner(conn)
 	scanner.Scan()
 
-	// remove trailing spaces
+	// remove trailing spaces from first line. that is the user name
 	name := strings.TrimRight(scanner.Text(), "\r ")
 
-	if len(name) == 0 || !validName(name) {
-		writeClientString(conn, "invalid user name. closing connection\n")
+	if !validName(name) {
+		writeClientString(conn, "Invalid user name. Closing connection\n")
 		return
 	}
 
@@ -96,14 +100,14 @@ func handleConnection(conn *net.TCPConn) {
 	users.addUser(User{name, conn})
 
 	// TODO fix trailing commas
-	// broadcast joining to other users
+	// broadcast the fact that user joined to other users
 	var other_names = ""
 	for _, user := range users.getOtherUsers(name) {
 		other_names += user.name + ","
 	}
 	writeClientString(conn, "* The room contains: "+other_names+"\n")
 
-	// wait for messages
+	// wait for messages and send to other users
 	for scanner.Scan() {
 		text := scanner.Text()
 		for _, user := range users.getOtherUsers(name) {
